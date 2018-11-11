@@ -61,6 +61,21 @@ impl Component for Material {
     type Storage = DenseVecStorage<Self>;
 }
 
+/// A Triplanar material consists of three materials, one for each plane.
+#[derive(Clone)]
+pub struct TriplanarMaterial {
+    /// Material for the yz plane
+    pub material_x: Material,
+    /// Material for the xz plane
+    pub material_y: Material,
+    /// Material for the xy plane
+    pub material_z: Material,
+}
+
+impl Component for TriplanarMaterial {
+    type Storage = DenseVecStorage<Self>;
+}
+
 /// A resource providing default textures for `Material`.
 /// These will be be used by the renderer in case a texture
 /// handle points to a texture which is not loaded already.

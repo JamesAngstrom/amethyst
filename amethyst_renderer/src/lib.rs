@@ -105,11 +105,11 @@ pub use {
     },
     light::{DirectionalLight, Light, LightPrefab, PointLight, SpotLight, SunLight},
     mesh::{vertex_data, Mesh, MeshBuilder, MeshHandle, VertexBuffer},
-    mtl::{Material, MaterialDefaults, TextureOffset},
+    mtl::{Material, TriplanarMaterial, MaterialDefaults, TextureOffset},
     pass::{
         get_camera, set_vertex_args, DebugLinesParams, DrawDebugLines, DrawFlat, DrawFlat2D,
         DrawFlatSeparate, DrawPbm, DrawPbmSeparate, DrawShaded, DrawShadedSeparate, DrawSkybox,
-        SkyboxColor,
+        DrawTriplanar, SkyboxColor,
     },
     pipe::{
         ColorBuffer, Data, DepthBuffer, DepthMode, Effect, EffectBuilder, Init, Meta, NewEffect,

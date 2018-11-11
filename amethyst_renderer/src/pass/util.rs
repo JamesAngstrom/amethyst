@@ -12,7 +12,7 @@ use amethyst_core::{
 use {
     cam::{ActiveCamera, Camera},
     mesh::Mesh,
-    mtl::{Material, MaterialDefaults, TextureOffset},
+    mtl::{Material, TriplanarMaterial, MaterialDefaults, TextureOffset},
     pass::set_skinning_buffers,
     pipe::{Effect, EffectBuilder},
     skinning::JointTransforms,
@@ -29,6 +29,12 @@ pub(crate) enum TextureType {
     Roughness,
     AmbientOcclusion,
     Caveat,
+}
+
+pub(crate) enum TriplanarPlane {
+    PlaneXY,
+    PlaneYZ,
+    PlaneXZ
 }
 
 #[repr(C, align(16))]
@@ -101,6 +107,46 @@ pub(crate) fn setup_textures(builder: &mut EffectBuilder, types: &[TextureType])
         };
     }
     setup_texture_offsets(builder, types);
+}
+
+pub(crate) fn setup_triplanar_textures(builder: &mut EffectBuilder, types: &[TextureType], plane: TriplanarPlane) {
+    use self::TextureType::*;
+    use self::TriplanarPlane::*;
+    match plane {
+        PlaneXY => {
+            for ty in types {
+                match *ty {
+                    Albedo => builder.with_texture("albedo_xy"),
+                    Emission => builder.with_texture("emission_xy"),
+                    Normal => builder.with_texture("normal_xy"),
+                    _ => unreachable!()
+                };
+            }
+            setup_texture_offsets(builder, types);
+        },
+        PlaneYZ => {
+            for ty in types {
+                match *ty {
+                    Albedo => builder.with_texture("albedo_yz"),
+                    Emission => builder.with_texture("emission_yz"),
+                    Normal => builder.with_texture("normal_yz"),
+                    _ => unreachable!()
+                };
+            }
+            setup_texture_offsets(builder, types);
+        },
+        PlaneXZ => {
+            for ty in types {
+                match *ty {
+                    Albedo => builder.with_texture("albedo_xz"),
+                    Emission => builder.with_texture("emission_xz"),
+                    Normal => builder.with_texture("normal_xz"),
+                    _ => unreachable!()
+                };
+            }
+            setup_texture_offsets(builder, types);
+        }
+    }
 }
 
 pub(crate) fn add_textures(
@@ -344,6 +390,74 @@ pub(crate) fn draw_mesh(
         encoder,
         &tex_storage,
         material,
+        &material_defaults.0,
+        textures,
+    );
+
+    effect.draw(mesh.slice(), encoder);
+    effect.clear();
+}
+
+pub(crate) fn draw_triplanar_mesh(
+    encoder: &mut Encoder,
+    effect: &mut Effect,
+    skinning: bool,
+    mesh: Option<&Mesh>,
+    joint: Option<&JointTransforms>,
+    tex_storage: &AssetStorage<Texture>,
+    tri_material: Option<&TriplanarMaterial>,
+    material_defaults: &MaterialDefaults,
+    camera: Option<(&Camera, &GlobalTransform)>,
+    global: Option<&GlobalTransform>,
+    attributes: &[Attributes<'static>],
+    textures: &[TextureType],
+) {
+    let mesh = match mesh {
+        Some(mesh) => mesh,
+        None => return,
+    };
+    if tri_material.is_none() || global.is_none() {
+        return;
+    }
+
+    if !set_attribute_buffers(effect, mesh, attributes)
+        || (skinning && !set_skinning_buffers(effect, mesh))
+    {
+        effect.clear();
+        return;
+    }
+
+    set_vertex_args(effect, encoder, camera, global.unwrap());
+
+    if skinning {
+        if let Some(joint) = joint {
+            effect.update_buffer("JointTransforms", &joint.matrices[..], encoder);
+        }
+    }
+
+    add_textures(
+        effect,
+        encoder,
+        &tex_storage,
+        &(*tri_material.unwrap()).material_x,
+        &material_defaults.0,
+        textures,
+    );
+
+    add_textures(
+        effect,
+        encoder,
+        &tex_storage,
+        &(*tri_material.unwrap()).material_y,
+        &material_defaults.0,
+        textures,
+    );
+
+    add_textures(
+        effect,
+        encoder,
+        &tex_storage,
+        &(*tri_material.unwrap()).material_z,
         &material_defaults.0,
         textures,
     );
